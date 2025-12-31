@@ -8,7 +8,7 @@ In this mode, the Client spawns the Server as a subprocess. They communicate dir
 ```mermaid
 sequenceDiagram
     participant C as MCP Client
-    participant S as MCP Server (Subprocess)
+    participant S as "MCP Server (Subprocess)"
 
     C->>S: Spawn Process (node/go run)
     C->>S: JSON-RPC Request (via Stdin)
@@ -42,18 +42,18 @@ sequenceDiagram
 ```mermaid
 graph TD
     subgraph Local Mode
-        LocalClient[Local Client] <==>|Stdio Pipe| StdioServer[Stdio Server]
+        LocalClient["Local Client"] <==>|Stdio Pipe| StdioServer["Stdio Server"]
     end
 
     subgraph Remote Mode
-        RemoteClient[Remote Client]
-        HTTPServer[HTTP Server (SSE)]
+        RemoteClient["Remote Client"]
+        HTTPServer["HTTP Server (SSE)"]
         
         RemoteClient -- GET /sse --> HTTPServer
         RemoteClient -- POST /messages --> HTTPServer
-        HTTPServer -- Internal Call --> MCPServer[MCP Server Logic]
+        HTTPServer -- Internal Call --> MCPServer["MCP Server Logic"]
     end
     
-    StdioServer --> WeatherTool[Weather Tool]
+    StdioServer --> WeatherTool["Weather Tool"]
     MCPServer --> WeatherTool
 ```
