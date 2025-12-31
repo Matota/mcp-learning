@@ -5,6 +5,8 @@ Implementations are provided in both **TypeScript** (Node.js) and **Go**.
 
 ## Components
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for a visual diagram of the system.
+
 ### Node.js (TypeScript)
 1.  **Weather Server**: A core MCP server (`src/weather-server.ts`) exposing a `get_weather` tool.
 2.  **Stdio Transport**: A wrapper (`src/server-stdio.ts`) to run the server over standard input/output.
