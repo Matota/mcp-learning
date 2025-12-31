@@ -4,27 +4,27 @@ This document outlines the next steps in your journey from "Tool Builder" to "Ad
 
 ```mermaid
 graph TD
-    Current[Current Status: Basic Agent] --> Phase1
+    Current["Current Status: Basic Agent"] --> Phase1
     
     subgraph Phase 1: Context & Memory
-        Phase1[Goal: The Personal Assistant]
-        Memory[Add Short-Term Memory]
-        RAG[Add Long-Term Knowledge (RAG)]
-        VectorDB[Integrate Vector DB]
+        Phase1["Goal: The Personal Assistant"]
+        Memory["Add Short-Term Memory"]
+        RAG["Add Long-Term Knowledge (RAG)"]
+        VectorDB["Integrate Vector DB"]
     end
     
     subgraph Phase 2: Freedom & Privacy
-        Phase2[Goal: Runs 100% Local]
-        Ollama[Install Ollama]
-        LocalModel[Switch to Llama 3 / Mistral]
-        CostFree[No API Key Limits]
+        Phase2["Goal: Runs 100% Local"]
+        Ollama["Install Ollama"]
+        LocalModel["Switch to Llama 3 / Mistral"]
+        CostFree["No API Key Limits"]
     end
     
     subgraph Phase 3: Orchestration
-        Phase3[Goal: Multi-Agent Teams]
-        Manager[Manager Agent]
-        Workers[Worker Agents]
-        Frameworks[LangGraph / CrewAI]
+        Phase3["Goal: Multi-Agent Teams"]
+        Manager["Manager Agent"]
+        Workers["Worker Agents"]
+        Frameworks["LangGraph / CrewAI"]
     end
 
     Phase1 --> Phase2
