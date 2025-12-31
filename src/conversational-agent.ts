@@ -16,28 +16,51 @@ if (!OPENAI_API_KEY) {
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 async function main() {
-    // 1. Initialize MCP Client
-    const transport = new StdioClientTransport({
+    // 1. Initialize Multiple MCP Clients
+    const weatherTransport = new StdioClientTransport({
         command: "node",
         args: ["--loader", "ts-node/esm", "--no-warnings", "src/server-stdio.ts"]
     });
 
-    const mcpClient = new Client(
-        { name: "conversational-agent", version: "1.0.0" },
+    const documentTransport = new StdioClientTransport({
+        command: "node",
+        args: ["--loader", "ts-node/esm", "--no-warnings", "src/document-server.ts"]
+    });
+
+    const weatherClient = new Client(
+        { name: "weather-client", version: "1.0.0" },
         { capabilities: {} }
     );
 
-    try {
-        await mcpClient.connect(transport);
-        console.log("[Agent] Connected to MCP Server.");
+    const documentClient = new Client(
+        { name: "document-client", version: "1.0.0" },
+        { capabilities: {} }
+    );
 
-        // 2. Discover Tools
-        const toolsList = await mcpClient.listTools();
-        const mcpTools = toolsList.tools;
-        console.log(`[Agent] Discovered ${mcpTools.length} tools: ${mcpTools.map(t => t.name).join(", ")}`);
+    // Map to track which client handles which tool
+    const toolClientMap = new Map<string, Client>();
+
+    try {
+        // Connect to both servers
+        await weatherClient.connect(weatherTransport);
+        console.log("[Agent] Connected to Weather Server.");
+
+        await documentClient.connect(documentTransport);
+        console.log("[Agent] Connected to Document Server.");
+
+        // 2. Discover Tools from both servers
+        const weatherTools = await weatherClient.listTools();
+        const documentTools = await documentClient.listTools();
+
+        // Track which client handles which tool
+        weatherTools.tools.forEach(tool => toolClientMap.set(tool.name, weatherClient));
+        documentTools.tools.forEach(tool => toolClientMap.set(tool.name, documentClient));
+
+        const allTools = [...weatherTools.tools, ...documentTools.tools];
+        console.log(`[Agent] Discovered ${allTools.length} tools: ${allTools.map(t => t.name).join(", ")}`);
 
         // 3. Convert Tools to OpenAI Format
-        const openaiTools: OpenAI.Chat.Completions.ChatCompletionTool[] = mcpTools.map(tool => ({
+        const openaiTools: OpenAI.Chat.Completions.ChatCompletionTool[] = allTools.map(tool => ({
             type: "function",
             function: {
                 name: tool.name,
@@ -70,7 +93,8 @@ async function main() {
                 if (userInput.trim().toLowerCase() === "/quit") {
                     console.log("[Agent] Goodbye!");
                     rl.close();
-                    await mcpClient.close();
+                    await weatherClient.close();
+                    await documentClient.close();
                     process.exit(0);
                 }
 
@@ -99,8 +123,13 @@ async function main() {
                             // @ts-ignore
                             const toolArgs = JSON.parse(toolCall.function.arguments);
 
-                            // Call MCP Tool
-                            const result = await mcpClient.callTool({
+                            // Call MCP Tool using the appropriate client
+                            const client = toolClientMap.get(toolName);
+                            if (!client) {
+                                throw new Error(`No client found for tool: ${toolName}`);
+                            }
+
+                            const result = await client.callTool({
                                 name: toolName,
                                 arguments: toolArgs
                             });

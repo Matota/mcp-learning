@@ -1,0 +1,9 @@
+The capital of France is Paris. Paris is known for the Eiffel Tower and the Louvre Museum.
+
+The capital of Japan is Tokyo. Tokyo is famous for its blend of traditional and modern culture.
+
+The capital of the United Kingdom is London. London is home to Big Ben and Buckingham Palace.
+
+Machine Learning is a subset of Artificial Intelligence that enables systems to learn from data.
+
+Python is a popular programming language used for web development, data science, and automation.
