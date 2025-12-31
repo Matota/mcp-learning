@@ -3,13 +3,9 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { ChromaClient } from "chromadb";
 import * as fs from "fs";
 import * as path from "path";
 
-// Initialize ChromaDB client
-const chromaClient = new ChromaClient();
-const COLLECTION_NAME = "documents";
 const DOCUMENTS_DIR = "./documents";
 
 // Schema for search arguments
@@ -17,59 +13,63 @@ const SearchArgsSchema = z.object({
     query: z.string().describe("The search query to find relevant documents")
 });
 
-// Initialize and populate ChromaDB collection
-async function initializeVectorDB() {
-    try {
-        // Try to get existing collection, or create new one
-        let collection;
-        try {
-            collection = await chromaClient.getCollection({ name: COLLECTION_NAME });
-            console.error("[Document Server] Using existing ChromaDB collection");
-        } catch {
-            collection = await chromaClient.createCollection({ name: COLLECTION_NAME });
-            console.error("[Document Server] Created new ChromaDB collection");
+/**
+ * Simple Keyword Search Engine
+ * This replaces ChromaDB for a more reliable, zero-dependency demo.
+ */
+class SimpleSearchEngine {
+    private indexedDocs: { content: string; source: string }[] = [];
+
+    async initialize() {
+        if (!fs.existsSync(DOCUMENTS_DIR)) {
+            console.error(`[Document Server] Warning: ${DOCUMENTS_DIR} directory not found.`);
+            return;
         }
 
-        // Index all text files in documents directory
-        if (fs.existsSync(DOCUMENTS_DIR)) {
-            const files = fs.readdirSync(DOCUMENTS_DIR).filter(f => f.endsWith('.txt'));
+        const files = fs.readdirSync(DOCUMENTS_DIR).filter(f => f.endsWith('.txt') || f.endsWith('.md'));
 
-            if (files.length > 0) {
-                const documents: string[] = [];
-                const metadatas: any[] = [];
-                const ids: string[] = [];
+        for (const file of files) {
+            const filePath = path.join(DOCUMENTS_DIR, file);
+            const content = fs.readFileSync(filePath, 'utf-8');
 
-                for (const file of files) {
-                    const filePath = path.join(DOCUMENTS_DIR, file);
-                    const content = fs.readFileSync(filePath, 'utf-8');
+            // Split into paragraphs for better granularity
+            const sections = content.split('\n\n').filter(s => s.trim());
 
-                    // Split into chunks (simple line-based chunking)
-                    const lines = content.split('\n').filter(line => line.trim());
-
-                    lines.forEach((line, idx) => {
-                        documents.push(line);
-                        metadatas.push({ source: file, line: idx + 1 });
-                        ids.push(`${file}_${idx}`);
-                    });
-                }
-
-                // Add documents to collection
-                await collection.add({
-                    ids: ids,
-                    documents: documents,
-                    metadatas: metadatas
+            sections.forEach(section => {
+                this.indexedDocs.push({
+                    content: section.trim(),
+                    source: file
                 });
-
-                console.error(`[Document Server] Indexed ${documents.length} chunks from ${files.length} files`);
-            }
+            });
         }
+        console.error(`[Document Server] Indexed ${this.indexedDocs.length} sections from ${files.length} files`);
+    }
 
-        return collection;
-    } catch (error) {
-        console.error("[Document Server] Error initializing vector DB:", error);
-        throw error;
+    search(query: string, nResults: number = 3) {
+        const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+
+        const scoredDocs = this.indexedDocs.map(doc => {
+            const contentLower = doc.content.toLowerCase();
+            let score = 0;
+
+            queryTerms.forEach(term => {
+                if (contentLower.includes(term)) {
+                    score += 1;
+                }
+            });
+
+            return { ...doc, score };
+        });
+
+        return scoredDocs
+            .filter(doc => doc.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, nResults);
     }
 }
+
+// Create engine
+const engine = new SimpleSearchEngine();
 
 // Create MCP Server
 const server = new Server(
@@ -84,16 +84,13 @@ const server = new Server(
     }
 );
 
-// Store collection reference
-let collection: any;
-
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
             {
                 name: "search_documents",
-                description: "Search through indexed documents using semantic similarity. Returns relevant text chunks.",
+                description: "Search through local files using keyword matching. Returns relevant fragments.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -115,24 +112,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const args = SearchArgsSchema.parse(request.params.arguments);
 
         try {
-            // Query ChromaDB
-            const results = await collection.query({
-                queryTexts: [args.query],
-                nResults: 3
-            });
-
-            // Format results
-            const documents = results.documents[0] || [];
-            const metadatas = results.metadatas[0] || [];
+            const results = engine.search(args.query);
 
             let responseText = "";
-            if (documents.length === 0) {
-                responseText = "No relevant documents found.";
+            if (results.length === 0) {
+                responseText = `No relevant documents found for "${args.query}".`;
             } else {
                 responseText = "Found relevant information:\n\n";
-                documents.forEach((doc: string, idx: number) => {
-                    const meta = metadatas[idx] as any;
-                    responseText += `[${meta.source}] ${doc}\n`;
+                results.forEach((result, idx) => {
+                    responseText += `[${result.source}] ${result.content}\n\n`;
                 });
             }
 
@@ -162,12 +150,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Start server
 async function main() {
-    console.error("[Document Server] Initializing...");
-    collection = await initializeVectorDB();
+    console.error("[Document Server] Initializing Local Search...");
+    await engine.initialize();
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("[Document Server] Running on Stdio");
+    console.error("[Document Server] Running on Stdio (Keyword Search Mode)");
 }
 
 main().catch((error) => {
