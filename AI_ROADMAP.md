@@ -48,7 +48,7 @@ graph TD
 *   **Next Step**: Install [Ollama](https://ollama.com/) and update `baseURL` to `http://localhost:11434/v1`.
 *   **Benefit**: Private, free, and infinite execution.
 
-## Recommended Next Project
-**"The Personal Knowledge Assistant"**
-*   **Goal**: An agent that acts as your second brain.
-*   **Stack**: Local LLM (Phase 2) + RAG MCP Server (Phase 1) + Manager (Phase 3).
+## Recommended Next Project: The Personal Knowledge Assistant ("Second Brain")
+**Goal**: An agent that acts as your second brain.
+- **Detailed Roadmap**: [SECOND_BRAIN_ROADMAP.md](SECOND_BRAIN_ROADMAP.md)
+- **Stack**: Local LLM (Phase 2) + RAG MCP Server (Phase 1) + Manager (Phase 3).
