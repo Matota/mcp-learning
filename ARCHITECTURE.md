@@ -65,3 +65,45 @@ graph TD
     StdioServer --> WeatherTool["Weather Tool"]
     MCPServer --> WeatherTool
 ```
+
+## Phase 1: Conversational Agent with RAG
+
+This diagram shows how the Conversational Agent connects to multiple MCP servers simultaneously, enabling both weather queries and document search.
+
+```mermaid
+graph TD
+    subgraph User Interface
+        User["User Input"]
+    end
+
+    subgraph Conversational Agent
+        Agent["Conversational Agent"]
+        Memory["Message History"]
+        LLM["OpenAI GPT-4o"]
+    end
+
+    subgraph MCP Servers
+        WeatherServer["Weather Server (Stdio)"]
+        DocumentServer["Document Server (Stdio)"]
+    end
+
+    subgraph Data Sources
+        WeatherTool2["Weather Tool"]
+        ChromaDB["ChromaDB Vector Store"]
+        Docs["documents/*.txt"]
+    end
+
+    User --> Agent
+    Agent <--> Memory
+    Agent --> LLM
+    LLM -- "Decides which tool" --> Agent
+    
+    Agent -- "get_weather" --> WeatherServer
+    Agent -- "search_documents" --> DocumentServer
+    
+    WeatherServer --> WeatherTool2
+    DocumentServer --> ChromaDB
+    ChromaDB --> Docs
+    
+    Agent --> User
+```
