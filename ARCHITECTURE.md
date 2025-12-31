@@ -107,3 +107,41 @@ graph TD
     
     Agent --> User
 ```
+
+## Phase 3: Multi-Agent Orchestration (LangGraph)
+
+This diagram shows the transition from a procedural loop to a **State Graph**. The Manager orchestrates specialized MCP workers as "Tools" in the graph.
+
+```mermaid
+graph TD
+    subgraph User Interface
+        User["User Input"]
+    end
+
+    subgraph LangGraph Manager
+        StartNode["START"]
+        AgentNode["Agent Node (LLM)"]
+        ToolNode["Tool Node (MCP)"]
+        State["State (Messages)"]
+    end
+
+    subgraph Specialized MCP Workers
+        WeatherWorker["Weather Worker (Stdio)"]
+        ResearchWorker["Research Worker (Stdio)"]
+    end
+
+    User --> StartNode
+    StartNode --> AgentNode
+    AgentNode <--> State
+    
+    AgentNode -- "Conditional Edge" --> ToolNode
+    AgentNode -- "Conditional Edge" --> END
+    
+    ToolNode -- "call_tool" --> WeatherWorker
+    ToolNode -- "call_tool" --> ResearchWorker
+    
+    ToolNode --> AgentNode
+    
+    AgentNode --> User
+```
+
