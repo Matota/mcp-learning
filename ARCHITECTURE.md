@@ -53,6 +53,14 @@ graph TD
         RemoteClient -- POST /messages --> HTTPServer
         HTTPServer -- Internal Call --> MCPServer["MCP Server Logic"]
     end
+
+    subgraph AI Agents
+        ReflexAgent["Reflex Agent (Regex)"]
+        LLMAgent["LLM Agent (OpenAI)"]
+
+        ReflexAgent -- Stdio --> StdioServer
+        LLMAgent -- Stdio --> StdioServer
+    end
     
     StdioServer --> WeatherTool["Weather Tool"]
     MCPServer --> WeatherTool
